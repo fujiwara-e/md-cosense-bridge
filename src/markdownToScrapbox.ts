@@ -10,6 +10,7 @@ export function markdownToScrapbox(text: string): string {
   let codeBlockLang = "";
   const tableRows: string[] = [];
   let currentTableName = "imported_table";
+  let tableIndent = ""; // テーブルのインデントレベルを保持
 
   for (let i = 0; i < lines.length; i++) {
     let line = lines[i];
@@ -34,9 +35,10 @@ export function markdownToScrapbox(text: string): string {
     }
 
     // Check for table name in HTML comment
-    const tableNameMatch = line.match(/^<!--\s*table:(.+?)\s*-->$/);
+    const tableNameMatch = line.match(/^(\s*)<!--\s*table:(.+?)\s*-->$/);
     if (tableNameMatch) {
-      currentTableName = tableNameMatch[1];
+      tableIndent = tableNameMatch[1]; // インデントを保存
+      currentTableName = tableNameMatch[2];
       continue;
     }
 
@@ -54,6 +56,11 @@ export function markdownToScrapbox(text: string): string {
       }
 
       if (!inTable) {
+        // テーブルの開始時にインデントを保存（まだ保存されていない場合）
+        if (!tableIndent) {
+          const leadingSpaces = line.match(/^(\s*)/);
+          tableIndent = leadingSpaces ? leadingSpaces[1] : "";
+        }
         inTable = true;
         tableRows.push(cells.join("\t"));
       } else {
@@ -63,11 +70,14 @@ export function markdownToScrapbox(text: string): string {
     }
 
     if (inTable) {
-      processedLines.push(`table:${currentTableName}`);
-      processedLines.push(...tableRows.map((row) => "\t" + row));
+      // テーブルのインデントがない場合、デフォルトでスペース1つを追加
+      const finalIndent = tableIndent || " ";
+      processedLines.push(finalIndent + `table:${currentTableName}`);
+      processedLines.push(...tableRows.map((row) => finalIndent + "\t" + row));
       inTable = false;
       tableRows.length = 0;
       currentTableName = "imported_table"; // リセット
+      tableIndent = ""; // インデントをリセット
     }
 
     // Inline element conversion (order is important)
@@ -78,7 +88,7 @@ export function markdownToScrapbox(text: string): string {
     // Links: [text](url)
     // Special case: [link](link) → [link]
     line = line.replace(/\[([^\]]+)\]\(\1\)/g, "[$1]");
-    // General case: [text](url) → [text url]
+    // General case: [text](url) → [text url] (Scrapbox形式)
     line = line.replace(/\[([^\]]+)\]\(([^)]+)\)/g, "[$1 $2]");
 
     // Bold: **text** → [** text]
@@ -130,8 +140,10 @@ export function markdownToScrapbox(text: string): string {
 
   // Process any remaining table
   if (inTable) {
-    processedLines.push(`table:${currentTableName}`);
-    processedLines.push(...tableRows.map((row) => "\t" + row));
+    // テーブルのインデントがない場合、デフォルトでスペース1つを追加
+    const finalIndent = tableIndent || " ";
+    processedLines.push(finalIndent + `table:${currentTableName}`);
+    processedLines.push(...tableRows.map((row) => finalIndent + "\t" + row));
   }
 
   return processedLines.join("\n");

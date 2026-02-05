@@ -13,7 +13,6 @@ export function scrapboxToMarkdown(text: string): string {
   // 最初の行はタイトルとして処理
   const titleLine = lines[0];
   processedLines.push(`# ${titleLine}`);
-  processedLines.push(""); // タイトルの後に改行を追加
 
   // 2行目以降を処理
   for (let i = 1; i < blocks.length; i++) {
@@ -21,7 +20,6 @@ export function scrapboxToMarkdown(text: string): string {
 
     // Table block
     if (block.type === "table") {
-      processedLines.push("");
       // テーブル名をHTMLコメントで保存
       if (block.fileName) {
         processedLines.push(`<!-- table:${block.fileName} -->`);
@@ -50,7 +48,6 @@ export function scrapboxToMarkdown(text: string): string {
 
     // Code block
     if (block.type === "codeBlock") {
-      processedLines.push("");
       processedLines.push("```" + block.fileName);
       processedLines.push(block.content);
       processedLines.push("```");
@@ -79,7 +76,6 @@ export function scrapboxToMarkdown(text: string): string {
           .join("");
 
         if (indent === 0) {
-          processedLines.push("");
           // *-1 → h3, *-2 → h2, *-3 → h3
           const mdLevel = level === 2 ? 2 : 3;
           processedLines.push("#".repeat(mdLevel) + " " + headingText);
