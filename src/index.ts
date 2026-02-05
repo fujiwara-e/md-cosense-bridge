@@ -9,7 +9,7 @@ import { markdownToScrapbox } from "./markdownToScrapbox";
 const program = new Command();
 
 program
-  .name("md2cosense")
+  .name("md-cosense-bridge")
   .description(
     "CLI tool to convert between Scrapbox and Markdown (Obsidian) formats",
   )

@@ -1,5 +1,5 @@
 {
-  "name": "md2cosense",
+  "name": "md-cosense-bridge",
   "version": "1.0.0",
   "description": "CLI tool to convert between Scrapbox and Markdown (Obsidian) formats",
   "license": "ISC",
@@ -7,7 +7,7 @@
   "type": "commonjs",
   "main": "dist/index.js",
   "bin": {
-    "md2cosense": "./dist/index.js"
+    "md-cosense-bridge": "./dist/index.js"
   },
   "scripts": {
     "build": "tsc",
@@ -16,7 +16,13 @@
     "clean": "rm -rf dist",
     "prebuild": "npm run clean"
   },
-  "keywords": ["scrapbox", "markdown", "obsidian", "converter", "cli"],
+  "keywords": [
+    "scrapbox",
+    "markdown",
+    "obsidian",
+    "converter",
+    "cli"
+  ],
   "dependencies": {
     "@progfay/scrapbox-parser": "^10.1.1",
     "axios": "^1.6.5",
