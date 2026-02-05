@@ -168,11 +168,19 @@ function nodeToMarkdown(node: any): string {
         }
         return `![](${node.href})`;
       }
+      // Scrapbox内部リンク [page] → [page](page)
+      if (node.pathType === "relative") {
+        return `[${node.href}](${node.href})`;
+      }
+      // contentが空の絶対URLは生のURLとして出力（[]なしURL）
+      if (!node.content && node.pathType === "absolute") {
+        return node.href;
+      }
       // リンク（テキスト付き）
       if (node.content && node.content !== node.href) {
         return `[${node.content}](${node.href})`;
       }
-      // シンプルなリンク
+      // Scrapbox記法の[url]（contentとhrefが同じ）
       return `[${node.href}](${node.href})`;
 
     case "image":
