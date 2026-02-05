@@ -22,6 +22,10 @@ export function scrapboxToMarkdown(text: string): string {
     // Table block
     if (block.type === "table") {
       processedLines.push("");
+      // テーブル名をHTMLコメントで保存
+      if (block.fileName) {
+        processedLines.push(`<!-- table:${block.fileName} -->`);
+      }
       const rows = block.cells;
       if (rows.length > 0) {
         // Header row

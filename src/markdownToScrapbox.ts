@@ -9,6 +9,7 @@ export function markdownToScrapbox(text: string): string {
   const codeBlockContent: string[] = [];
   let codeBlockLang = "";
   const tableRows: string[] = [];
+  let currentTableName = "imported_table";
 
   for (let i = 0; i < lines.length; i++) {
     let line = lines[i];
@@ -29,6 +30,13 @@ export function markdownToScrapbox(text: string): string {
 
     if (inCodeBlock) {
       codeBlockContent.push(line);
+      continue;
+    }
+
+    // Check for table name in HTML comment
+    const tableNameMatch = line.match(/^<!--\s*table:(.+?)\s*-->$/);
+    if (tableNameMatch) {
+      currentTableName = tableNameMatch[1];
       continue;
     }
 
@@ -55,10 +63,11 @@ export function markdownToScrapbox(text: string): string {
     }
 
     if (inTable) {
-      processedLines.push("table:imported_table");
+      processedLines.push(`table:${currentTableName}`);
       processedLines.push(...tableRows.map((row) => "\t" + row));
       inTable = false;
       tableRows.length = 0;
+      currentTableName = "imported_table"; // リセット
     }
 
     // Inline element conversion (order is important)
@@ -121,7 +130,7 @@ export function markdownToScrapbox(text: string): string {
 
   // Process any remaining table
   if (inTable) {
-    processedLines.push("table:imported_table");
+    processedLines.push(`table:${currentTableName}`);
     processedLines.push(...tableRows.map((row) => "\t" + row));
   }
 
