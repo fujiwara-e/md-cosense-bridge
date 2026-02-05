@@ -1,13 +1,12 @@
 # md-cosense-bridge
 
-ScrapboxとMarkdown(Obsidian)記法を相互変換するCLIツール
+Cosense (旧 Scrapbox) と Markdown (Obsidian) 記法を相互変換するCLIツール
 
 ## インストール
 
 ```bash
 npm install
 npm run build
-npm link
 ```
 
 ## セットアップ
