@@ -94,7 +94,12 @@ export function markdownToScrapbox(text: string): string {
     if (headingMatch) {
       const level = headingMatch[1].length;
       const title = headingMatch[2];
-      processedLines.push(`[${"*".repeat(level)} ${title}]`);
+      // h2 → [**], h3 → [*], h4+ → [**]
+      if (level === 2) {
+        processedLines.push(`[** ${title}]`);
+      } else {
+        processedLines.push(`[* ${title}]`);
+      }
       continue;
     }
 
@@ -104,7 +109,9 @@ export function markdownToScrapbox(text: string): string {
       const indent = listMatch[1].length;
       // Convert markdown list to scrapbox indented line
       // Markdown uses 2 spaces per level, Scrapbox uses 1 space per level
-      const scrapboxIndent = Math.floor(indent / 2) + 1;
+      // Markdown "  - text" (indent=2) → Scrapbox " text" (indent=1)
+      // Markdown "    - text" (indent=4) → Scrapbox "  text" (indent=2)
+      const scrapboxIndent = indent / 2;
       processedLines.push(" ".repeat(scrapboxIndent) + listMatch[3]);
       continue;
     }
