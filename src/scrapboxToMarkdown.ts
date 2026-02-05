@@ -1,4 +1,4 @@
-import parse from "@progfay/scrapbox-parser";
+import { parse } from "@progfay/scrapbox-parser";
 
 /**
  * ScrapboxテキストをMarkdownに変換
@@ -56,16 +56,50 @@ export function scrapboxToMarkdown(text: string): string {
     // Line block
     if (block.type === "line") {
       const indent = block.indent;
-      const content = block.nodes.map((node) => nodeToMarkdown(node)).join("");
 
-      if (content.trim()) {
-        if (indent > 0) {
-          processedLines.push("  ".repeat(indent) + "- " + content);
+      // 見出し記法のチェック (decorationノードで *-1, *-2, *-3 を含む)
+      const firstNode = block.nodes[0];
+      const isHeading =
+        firstNode?.type === "decoration" &&
+        firstNode.decos?.some((d: string) => d.startsWith("*-")) &&
+        block.nodes.length === 1;
+
+      if (isHeading && firstNode.type === "decoration") {
+        // 見出しレベルを取得 (*-1 = h3, *-2 = h2, *-3 = h3)
+        const levelDeco = firstNode.decos?.find((d: string) =>
+          d.startsWith("*-"),
+        );
+        const level = levelDeco ? parseInt(levelDeco.split("-")[1]) : 1;
+        const headingText = firstNode.nodes
+          .map((n: any) => nodeToMarkdown(n))
+          .join("");
+
+        if (indent === 0) {
+          processedLines.push("");
+          // *-1 → h3, *-2 → h2, *-3 → h3
+          const mdLevel = level === 2 ? 2 : 3;
+          processedLines.push("#".repeat(mdLevel) + " " + headingText);
         } else {
-          processedLines.push(content);
+          // インデントがある場合は太字の箇条書きとして処理
+          processedLines.push(
+            "  ".repeat(indent) + "- **" + headingText + "**",
+          );
         }
       } else {
-        processedLines.push("");
+        // 通常の行として処理
+        const content = block.nodes
+          .map((node) => nodeToMarkdown(node))
+          .join("");
+
+        if (content.trim()) {
+          if (indent > 0) {
+            processedLines.push("  ".repeat(indent) + "- " + content);
+          } else {
+            processedLines.push(content);
+          }
+        } else {
+          processedLines.push("");
+        }
       }
     }
   }
@@ -80,6 +114,24 @@ function nodeToMarkdown(node: any): string {
   switch (node.type) {
     case "plain":
       return node.text;
+
+    case "decoration":
+      // Scrapboxのdecoration記法 ([** text], [* text], [- text], [/ text] など)
+      const content = node.nodes.map((n: any) => nodeToMarkdown(n)).join("");
+      if (node.decos?.includes("*-2") || node.decos?.includes("*-3")) {
+        // 見出しレベル2または3 → 太字
+        return `**${content}**`;
+      } else if (node.decos?.includes("*-1")) {
+        // 見出しレベル1 → 太字
+        return `**${content}**`;
+      } else if (node.decos?.includes("-")) {
+        // 打ち消し線
+        return `~~${content}~~`;
+      } else if (node.decos?.includes("/")) {
+        // 斜体
+        return `*${content}*`;
+      }
+      return content;
 
     case "strong":
       // [** text] または [* text] → **text**
@@ -135,6 +187,10 @@ function nodeToMarkdown(node: any): string {
       // アイコンはリンクとして扱う
       return `[${node.pathType === "root" ? "/" : ""}${node.path}]`;
 
+    case "hashTag":
+      // ハッシュタグはそのまま保持
+      return `#${node.href}`;
+
     case "quote":
       // 引用は > で表現
       return `> ${node.nodes.map((n: any) => nodeToMarkdown(n)).join("")}`;
@@ -169,6 +225,8 @@ function nodeToText(node: any): string {
       return node.text;
     case "link":
       return node.content || node.href;
+    case "hashTag":
+      return `#${node.href}`;
     case "image":
     case "strongImage":
       return node.src;
