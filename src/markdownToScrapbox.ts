@@ -12,6 +12,39 @@ export function markdownToScrapbox(text: string): string {
   let currentTableName = "imported_table";
   let tableIndent = ""; // テーブルのインデントレベルを保持
 
+  // Pre-scan to find minimum list indent per block
+  const listBlockMinIndents: Map<number, number> = new Map();
+  let currentBlockStart = -1;
+  let minIndentInBlock = Infinity;
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    const listMatch = line.match(/^(\s*)([-*])\s(.*)/);
+
+    if (listMatch) {
+      const indent = listMatch[1].length;
+      if (currentBlockStart === -1) {
+        currentBlockStart = i;
+        minIndentInBlock = indent;
+      } else {
+        minIndentInBlock = Math.min(minIndentInBlock, indent);
+      }
+    } else if (currentBlockStart !== -1 && line.trim() !== "") {
+      // End of list block
+      for (let j = currentBlockStart; j < i; j++) {
+        listBlockMinIndents.set(j, minIndentInBlock);
+      }
+      currentBlockStart = -1;
+      minIndentInBlock = Infinity;
+    }
+  }
+  // Handle last block
+  if (currentBlockStart !== -1) {
+    for (let j = currentBlockStart; j < lines.length; j++) {
+      listBlockMinIndents.set(j, minIndentInBlock);
+    }
+  }
+
   for (let i = 0; i < lines.length; i++) {
     let line = lines[i];
 
@@ -126,11 +159,15 @@ export function markdownToScrapbox(text: string): string {
     const listMatch = line.match(/^(\s*)([-*])\s(.*)/);
     if (listMatch) {
       const indent = listMatch[1].length;
+      const minIndent = listBlockMinIndents.get(i) || 0;
+
       // Convert markdown list to scrapbox indented line
+      // Calculate relative indent from the minimum indent in the block
       // Markdown uses 2 spaces per level, Scrapbox uses 1 space per level
-      // Markdown "  - text" (indent=2) → Scrapbox " text" (indent=1)
-      // Markdown "    - text" (indent=4) → Scrapbox "  text" (indent=2)
-      const scrapboxIndent = indent / 2;
+      // Scrapbox requires at least 1 space for list items
+      const relativeIndent = indent - minIndent;
+      const scrapboxIndent = Math.floor(relativeIndent / 2) + 1;
+
       processedLines.push(" ".repeat(scrapboxIndent) + listMatch[3]);
       continue;
     }
